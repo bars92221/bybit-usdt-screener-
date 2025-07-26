@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crypto Signal Screener</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e1e2e 0%, #2a2a40 100%);
+            color: #e0e0e0;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, #00d4ff, #ff6b6b);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header p {
+            color: #b0b0b0;
+            font-size: 1.1em;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .status {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #ff6b6b;
+            animation: pulse 2s infinite;
+        }
+
+        .status-indicator.connected {
+            background: #00d4ff;
+        }
+
+        .refresh-btn {
+            background: linear-gradient(45deg, #00d4ff, #0099cc);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 212, 255, 0.3);
+        }
+
+        .refresh-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 212, 255, 0.4);
+        }
+
+        .refresh-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .signals-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .signal-card {
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 15px;
+            padding: 25px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .signal-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .signal-card.strong {
+            border-left: 4px solid #ff6b6b;
+            background: rgba(255, 107, 107, 0.1);
+        }
+
+        .signal-card.weak {
+            border-left: 4px solid #00d4ff;
+            background: rgba(0, 212, 255, 0.1);
+        }
+
+        .signal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .signal-symbol {
+            font-size: 1.4em;
+            font-weight: bold;
+            color: #ffffff;
+        }
+
+        .signal-strength {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .signal-strength.strong {
+            background: linear-gradient(45deg, #ff6b6b, #ff4757);
+            color: white;
+        }
+
+        .signal-strength.weak {
+            background: linear-gradient(45deg, #00d4ff, #0099cc);
+            color: white;
+        }
+
+        .signal-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .info-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .info-label {
+            font-size: 0.85em;
+            color: #b0b0b0;
+            margin-bottom: 5px;
+        }
+
+        .info-value {
+            font-size: 1.1em;
+            font-weight: 600;
+            color: #ffffff;
+        }
+
+        .price-change {
+            color: #00d4ff;
+        }
+
+        .price-change.positive {
+            color: #00ff88;
+        }
+
+        .price-change.negative {
+            color: #ff6b6b;
+        }
+
+        .signal-details {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+
+        .signal-details h4 {
+            color: #00d4ff;
+            margin-bottom: 10px;
+            font-size: 0.95em;
+        }
+
+        .detail-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+            font-size: 0.9em;
+        }
+
+        .confirmed-timeframes {
+            background: rgba(255, 107, 107, 0.2);
+            border-radius: 8px;
+            padding: 10px;
+            margin-top: 10px;
+        }
+
+        .timeframe-tag {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            margin: 2px;
+        }
+
+        .signal-timestamp {
+            text-align: center;
+            color: #888;
+            font-size: 0.85em;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .chart-link {
+            display: inline-block;
+            background: linear-gradient(45deg, #00d4ff, #0099cc);
+            color: white;
+            text-decoration: none;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 600;
+            margin-top: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .chart-link:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 15px rgba(0, 212, 255, 0.3);
+        }
+
+        .no-signals {
+            text-align: center;
+            padding: 60px 20px;
+            color: #888;
+            font-size: 1.2em;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #00d4ff;
+        }
+
+        .spinner {
+            border: 4px solid rgba(0, 212, 255, 0.1);
+            border-left: 4px solid #00d4ff;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .stat-number {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #00d4ff;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            color: #b0b0b0;
+            font-size: 0.9em;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+            
+            .signals-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .controls {
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 Crypto Signal Screener</h1>
+            <p>Real-time MACD & StochRSI signals for Bybit USDT futures</p>
+        </div>
+
+        <div class="controls">
+            <div class="status">
+                <div class="status-indicator" id="statusIndicator"></div>
+                <span id="statusText">Connecting...</span>
+                <span id="lastUpdate"></span>
+            </div>
+            <button class="refresh-btn" id="refreshBtn" onclick="refreshSignals()">
+                🔄 Refresh Signals
+            </button>
+        </div>
+
+        <div class="stats" id="statsContainer">
+            <div class="stat-card">
+                <div class="stat-number" id="totalSignals">0</div>
+                <div class="stat-label">Total Signals</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="strongSignals">0</div>
+                <div class="stat-label">Strong Signals</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="weakSignals">0</div>
+                <div class="stat-label">Weak Signals</div>
+            </div>
+        </div>
+
+        <div class="signals-container" id="signalsContainer">
+            <div class="loading">
+                <div class="spinner"></div>
+                <div>Loading signals...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class SignalScreener {
+            constructor() {
+                this.ws = null;
+                this.signals = [];
+                this.isConnected = false;
+                this.reconnectAttempts = 0;
+                this.maxReconnectAttempts = 5;
+                this.connect();
+            }
+
+            connect() {
+                const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                const wsUrl = `${protocol}//${window.location.host}`;
+                
+                this.ws = new WebSocket(wsUrl);
+
+                this.ws.onopen = () => {
+                    console.log('WebSocket connected');
+                    this.isConnected = true;
+                    this.reconnectAttempts = 0;
+                    this.updateStatus('Connected', true);
+                };
+
+                this.ws.onmessage = (event) => {
+                    try {
+                        const data = JSON.parse(event.data);
+                        if (data.type === 'signals') {
+                            this.signals = data.data;
+                            this.renderSignals();
+                            this.updateStats();
+                            this.updateLastUpdateTime();
+                        }
+                    } catch (error) {
+                        console.error('Error parsing WebSocket message:', error);
+                    }
+                };
+
+                this.ws.onclose = () => {
+                    console.log('WebSocket disconnected');
+                    this.isConnected = false;
+                    this.updateStatus('Disconnected', false);
+                    this.attemptReconnect();
+                };
+
+                this.ws.onerror = (error) => {
+                    console.error('WebSocket error:', error);
+                    this.updateStatus('Connection Error', false);
+                };
+            }
+
+            attemptReconnect() {
+                if (this.reconnectAttempts < this.maxReconnectAttempts) {
+                    this.reconnectAttempts++;
+                    const delay = Math.pow(2, this.reconnectAttempts) * 1000;
+                    this.updateStatus(`Reconnecting in ${delay/1000}s... (${this.reconnectAttempts}/${this.maxReconnectAttempts})`, false);
+                    
+                    setTimeout(() => {
+                        this.connect();
+                    }, delay);
+                } else {
+                    this.updateStatus('Connection Failed', false);
+                }
+            }
+
+            updateStatus(text, connected) {
+                const statusIndicator = document.getElementById('statusIndicator');
+                const statusText = document.getElementById('statusText');
+                
+                statusIndicator.className = `status-indicator ${connected ? 'connected' : ''}`;
+                statusText.textContent = text;
+            }
+
+            updateLastUpdateTime() {
+                const lastUpdate = document.getElementById('lastUpdate');
+                lastUpdate.textContent = `Last update: ${new Date().toLocaleTimeString()}`;
+            }
+
+            updateStats() {
+                const totalSignals = this.signals.length;
+                const strongSignals = this.signals.filter(s => s.strength === 'strong').length;
+                const weakSignals = this.signals.filter(s => s.strength === 'weak').length;
+
+                document.getElementById('totalSignals').textContent = totalSignals;
+                document.getElementById('strongSignals').textContent = strongSignals;
+                document.getElementById('weakSignals').textContent = weakSignals;
+            }
+
+            renderSignals() {
+                const container = document.getElementById('signalsContainer');
+                
+                if (this.signals.length === 0) {
+                    container.innerHTML = '<div class="no-signals">No signals found. The screener is monitoring the market...</div>';
+                    return;
+                }
+
+                container.innerHTML = this.signals.map(signal => this.createSignalCard(signal)).join('');
+            }
+
+            createSignalCard(signal) {
+                const priceChangeClass = signal.priceChange24h > 0 ? 'positive' : signal.priceChange24h < 0 ? 'negative' : '';
+                const chartUrl = `https://www.bybit.com/trade/usdt/${signal.symbol.replace('USDT', '')}`;
+                
+                let confirmedTimeframesHtml = '';
+                if (signal.strength === 'strong' && signal.confirmedTimeframes) {
+                    confirmedTimeframesHtml = `
+                        <div class="confirmed-timeframes">
+                            <strong>Confirmed Timeframes:</strong><br>
+                            ${signal.confirmedTimeframes.map(tf => `<span class="timeframe-tag">${tf}</span>`).join('')}
+                        </div>
+                    `;
+                }
+
+                return `
+                    <div class="signal-card ${signal.strength}">
+                        <div class="signal-header">
+                            <div class="signal-symbol">${signal.symbol}</div>
+                            <div class="signal-strength ${signal.strength}">${signal.strength}</div>
+                        </div>
+                        
+                        <div class="signal-info">
+                            <div class="info-item">
+                                <div class="info-label">Price</div>
+                                <div class="info-value">$${signal.price}</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">24h Change</div>
+                                <div class="info-value price-change ${priceChangeClass}">
+                                    ${signal.priceChange24h > 0 ? '+' : ''}${signal.priceChange24h.toFixed(2)}%
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="signal-details">
+                            <h4>📊 Signal Details</h4>
+                            <div class="detail-item">
+                                <span>4H MACD:</span>
+                                <span>✅ ${signal.macdSignal.type}</span>
+                            </div>
+                            <div class="detail-item">
+                                <span>1D StochRSI:</span>
+                                <span>✅ ${signal.stochRSISignal.type}</span>
+                            </div>
+                            <div class="detail-item">
+                                <span>Price > 10 MA:</span>
+                                <span>${signal.priceAboveMA ? '✅' : '❌'}</span>
+                            </div>
+                            ${confirmedTimeframesHtml}
+                        </div>
+
+                        <a href="${chartUrl}" target="_blank" class="chart-link">
+                            📈 View Chart
+                        </a>
+
+                        <div class="signal-timestamp">
+                            ${new Date(signal.timestamp).toLocaleString()}
+                        </div>
+                    </div>
+                `;
+            }
+
+            refresh() {
+                if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+                    this.ws.send(JSON.stringify({ type: 'refresh' }));
+                }
+            }
+        }
+
+        // Initialize the screener
+        const screener = new SignalScreener();
+
+        // Refresh function
+        function refreshSignals() {
+            const btn = document.getElementById('refreshBtn');
+            btn.disabled = true;
+            btn.textContent = '🔄 Refreshing...';
+            
+            screener.refresh();
+            
+            setTimeout(() => {
+                btn.disabled = false;
+                btn.textContent = '🔄 Refresh Signals';
+            }, 2000);
+        }
+
+        // Auto-refresh every 5 minutes
+        setInterval(() => {
+            if (screener.isConnected) {
+                screener.refresh();
+            }
+        }, 5 * 60 * 1000);
+    </script>
+</body>
+</html>
