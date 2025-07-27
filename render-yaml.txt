@@ -2,7 +2,7 @@ services:
   - type: web
     name: crypto-signal-screener
     env: node
-    buildCommand: npm install
+    buildCommand: npm ci
     startCommand: npm start
     plan: starter
     healthCheckPath: /api/signals
